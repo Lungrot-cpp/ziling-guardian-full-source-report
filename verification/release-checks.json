@@ -1,0 +1,24 @@
+{
+  "firmware_rebuilt_in_delivery_directory": true,
+  "relocated_bin_matches_original": true,
+  "boot_rom_rebuilt_and_matches_fpga": true,
+  "fpga_inputs_match_receipt": true,
+  "activity_assistant_tests": 13,
+  "registration_tests": 2,
+  "infrared_rv32_cases": [
+    "infrared_assist_check",
+    "event_check",
+    "visual_weighted_check",
+    "hdmi_fps_check"
+  ],
+  "qq_alarm_offline_regression": true,
+  "pdf_pages": 25,
+  "local_word_limits_all_passed": true,
+  "actual_config_secrets_or_owner_ids_found_in_release": false,
+  "board_tested": false,
+  "flash_written": false,
+  "real_qq_message_sent": false,
+  "real_rgb_ir_registration_measured": false,
+  "end_to_end_daily_activity_to_deepseek_verified": false,
+  "original_video_modified": false
+}

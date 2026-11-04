@@ -1,0 +1,5 @@
+{
+  "python": "D:/python/python.exe",
+  "efinity": "D:/Efinity",
+  "openocd": "D:/Efinity/debugger/openocd/bin/openocd.exe"
+}

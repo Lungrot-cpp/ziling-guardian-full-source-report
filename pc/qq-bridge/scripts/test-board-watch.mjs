@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import { updateMonitor, sendNotice } from './board-watch.mjs';
+
+const status = (uptime_ms, tracks = [], alarm_latched = 0) => ({
+  server: 'riscv-lwip', uptime_ms, frame_id: uptime_ms, tracks, alarm_latched, alarm_mode: 'yellow_timeout_10s',
+});
+const event = (id, state, uptime_ms = 200) => ({ id, state, uptime_ms, frame: uptime_ms, track: 1 });
+const ledger = (...events) => ({ volatile: true, events });
+let s = updateMonitor({}, status(100), ledger(), 1000);
+assert.equal(s.health, 'waiting_for_fresh_data');
+s = updateMonitor(s, status(200, [{ id: 1, state: 2 }], 1), ledger(event(1, 2)), 2000);
+assert.equal(s.health, 'monitoring');
+assert.equal(s.pending.length, 1);
+assert.equal(s.pending[0].text, '自动告警：检测到人员跌倒。疑似意外，请求紧急救援。');
+s = JSON.parse(JSON.stringify(s)); // Restart preserves deduplication and unsent alerts.
+s = updateMonitor(s, status(300), ledger(event(1, 2)), 3000);
+assert.equal(s.pending.length, 1);
+s = updateMonitor(s, status(300), ledger(event(1, 2)), 19000);
+assert.equal(s.health, 'waiting_for_fresh_data');
+s = updateMonitor(s, status(600), ledger(event(1, 2), event(2, 0, 400), event(3, 2, 500)), 20000);
+assert.equal(s.pending.length, 2, 'recovery then another alarm is a new notification');
+s = updateMonitor(s, status(10), ledger(), 21000);
+assert.equal(s.generation, 2);
+s = updateMonitor(s, status(30), ledger(event(1, 2, 20)), 22000);
+assert.equal(s.pending.length, 3, 'board reboot permits reused event IDs');
+let initial = updateMonitor({}, status(800, [{ id: 2, state: 2 }], 1), ledger(event(8, 2)), 1000);
+assert.equal(initial.pending.length, 1);
+assert.match(initial.pending[0].text, /接入时已有报警/);
+assert.equal(initial.health, 'waiting_for_fresh_data');
+assert.equal(updateMonitor({}, status(800), ledger(event(8, 2)), 1000).pending.length, 0, 'do not replay old recovered alarms');
+let future = updateMonitor({}, status(100), ledger(), 1000);
+future = updateMonitor(future, status(200), ledger(event(1, 2, 300)), 2000);
+assert.equal(future.lastEventId, 0);
+future = updateMonitor(future, status(300), ledger(event(1, 2, 300)), 3000);
+assert.equal(future.pending.length, 1);
+let startupRace = updateMonitor({}, status(100), ledger(event(1, 2, 200)), 1000);
+startupRace = updateMonitor(startupRace, status(200, [{ id: 1, state: 2 }], 1), ledger(event(1, 2, 200)), 2000);
+assert.equal(startupRace.pending.length, 1, 'do not skip an alarm newer than the initial status snapshot');
+let overflow = updateMonitor({}, status(100), ledger(), 1000);
+overflow = updateMonitor(overflow, status(200, [], 1), ledger(), 2000);
+assert.match(overflow.pending[0].text, /暂无对应跌倒事件/);
+overflow = updateMonitor(overflow, status(300, [], 1), ledger(), 3000);
+assert.equal(overflow.pending.length, 1, 'a retained latch must not repeatedly notify');
+assert.throws(() => updateMonitor({}, { ...status(1), server: 'fake' }, ledger(), 1));
+assert.throws(() => updateMonitor({}, status(1), { events: [] }, 1));
+assert.throws(() => updateMonitor({}, status(1), ledger({ ...event(1, 2), state: 'FALLEN' }), 1));
+const cfg = { ownerQQ: 12345, allow: { private: [12345] }, snowluma: { httpUrl: 'http://127.0.0.1:3000', accessToken: 'test' } };
+let calls = 0;
+const mock = async (url, options) => {
+  calls++;
+  assert.equal(url, 'http://127.0.0.1:3000/send_private_msg');
+  const body = JSON.parse(options.body);
+  assert.equal(body.user_id, 12345);
+  assert.equal(body.message[0].data.text, 'test');
+  assert.equal(body.group_id, undefined);
+  return { ok: true, json: async () => ({ status: 'ok', retcode: 0, data: { message_id: 99 } }) };
+};
+assert.equal(await sendNotice(cfg, 'test', mock), 99);
+await assert.rejects(sendNotice({ ...cfg, ownerQQ: 999 }, 'test', mock));
+assert.equal(calls, 1, 'an invalid recipient must never reach the send API');
+await assert.rejects(sendNotice(cfg, 'test', async () => ({ ok: true, json: async () => ({ status: 'failed', retcode: 1 }) })));
+await assert.rejects(sendNotice(cfg, 'test', async () => ({ ok: true, json: async () => ({ status: 'ok', retcode: 0, data: {} }) })));
+console.log('PASS: alarm transitions, deduplication, restart/reboot, stale data, initial alarm, snapshot skew, schema and private delivery');

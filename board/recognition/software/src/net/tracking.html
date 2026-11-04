@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ti60 人员跟踪</title>
+<style>
+:root{--serif:Georgia, "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;--sans:"Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif}
+body{margin:0;background:#f5f3ec;color:#25382e;font:16px/1.6 var(--serif)}main{max-width:1050px;margin:auto;padding:24px}header,nav{display:flex;gap:16px;align-items:center;flex-wrap:wrap}h1{font-size:26px;margin:8px 0}a{color:#32644d}button{font:inherit;font-family:var(--sans);padding:11px 20px;border:1px solid #6d8d78;border-radius:7px;background:white;color:#254533;cursor:pointer}button[aria-pressed=true]{background:#315f48;color:white}button:disabled{opacity:.5}nav{margin:20px 0}canvas{display:block;width:100%;height:auto;background:#1c2722;border-radius:10px}p{line-height:1.7}.muted{color:#607166;font-size:14px}#people{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}.person{background:white;padding:10px 16px;border-radius:7px;border-left:5px solid var(--color)}#notice{min-height:24px}
+.embedded body{background:transparent;color:#1b1610}.embedded main{max-width:none;padding:0}.embedded header,.embedded main>p.muted{display:none}.embedded nav{margin:0 0 12px}.embedded button{min-height:44px;border-color:#d8d1c7;color:#1b1610;border-radius:8px}.embedded button[aria-pressed=true]{background:#1b1610;color:#fff}.embedded button:focus-visible{outline:2px solid #82432b;outline-offset:3px}.embedded canvas{border-radius:12px}.embedded .person{border:1px solid #d8d1c7;border-left-width:1px;color:#1b1610}.embedded #notice{color:#82432b}
+#mode,.person{font-family:var(--sans)}
+</style>
+<script>
+const embedded=new URLSearchParams(location.search).get('embedded')==='1';let embeddedActive=true;
+document.documentElement.classList.toggle('embedded',embedded);
+function viewActive(){return !document.hidden&&(!embedded||embeddedActive)}
+addEventListener('message',e=>{if(e.source===parent&&e.origin===location.origin&&e.data?.type==='vf-page-visibility')embeddedActive=!!e.data.active});
+</script>
+<main><header><h1>人员跟踪</h1><a href="/">监控首页</a><a href="/care.html">灯板与模拟门</a></header>
+<nav><button id="single" aria-pressed="true">单人模式</button><button id="multi" aria-pressed="false">多人模式</button><span id="mode">连接中…</span></nav>
+<p id="notice" role="status"></p><canvas id="video" width="960" height="540"></canvas><div id="people"></div>
+
+</main><script>
+const $=id=>document.getElementById(id),ctx=$('video').getContext('2d'),preview=new Image();
+const palette=['#5b9bce','#b37bc4','#d99c4d','#58a88b','#d6787e','#9aa447'];
+let state=null,connected=0,imageURL=null,haveImage=false;
+function draw(){ctx.fillStyle='#1c2722';ctx.fillRect(0,0,960,540);if(haveImage)ctx.drawImage(preview,0,0,960,540);if(!state||!connected||Date.now()-connected+(state.age_ms||0)>2800)return;
+ for(const t of state.tracks){let color=palette[t.id%palette.length];ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();t.trail.forEach((p,i)=>{let x=p[0]/2,y=p[1]/2;if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)});ctx.stroke();let [x0,y0,x1,y1]=t.box.map(v=>v/2);ctx.strokeStyle=['#36b174','#edb43e','#e95855'][t.state]||color;ctx.lineWidth=3;if(t.state!==0||t.person_confirmed!==0)ctx.strokeRect(x0,y0,x1-x0,y1-y0);ctx.fillStyle=color;ctx.font='bold 19px system-ui';ctx.fillText('ID '+t.id,Math.max(3,x0),Math.max(22,y0-7));}}
+async function status(){if(!viewActive()){setTimeout(status,800);return}try{let r=await fetch('/api/tracking',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error('跟踪接口不可用');state=await r.json();connected=Date.now();$('mode').textContent=(state.active_mode==='multi'?'多人模式':'单人模式')+' · '+state.tracks.length+'人'+(state.mode!==state.active_mode?' · 正在切换':'');for(let mode of ['single','multi'])$(mode).setAttribute('aria-pressed',String(state.mode===mode));$('people').replaceChildren();for(const t of state.tracks){let e=document.createElement('div');e.className='person';e.style.setProperty('--color',palette[t.id%palette.length]);e.textContent='ID '+t.id+' · '+(t.state===0&&t.person_confirmed===0?'红外未确认':(['正常','疑似跌倒','跌倒确认'][t.state]||'未知'));$('people').appendChild(e)}draw()}catch(e){connected=0;$('mode').textContent='连接中断';$('people').replaceChildren();draw()}setTimeout(status,800)}
+async function frame(){if(!viewActive()){setTimeout(frame,1800);return}try{let r=await fetch('/frame.bmp',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error('等待摄像头');let url=URL.createObjectURL(await r.blob());preview.onload=()=>{if(imageURL)URL.revokeObjectURL(imageURL);imageURL=url;haveImage=true;draw()};preview.src=url}catch(e){$('notice').textContent=e.message}setTimeout(frame,1800)}
+async function change(mode){$('single').disabled=$('multi').disabled=true;try{let r=await fetch('/api/tracking',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'mode='+mode});if(!r.ok)throw Error('切换未成功');$('notice').textContent='已请求切换至'+(mode==='multi'?'多人模式':'单人模式')+'，下一轮检测生效。'}catch(e){$('notice').textContent=e.message}finally{$('single').disabled=$('multi').disabled=false}}
+$('single').onclick=()=>change('single');$('multi').onclick=()=>change('multi');setInterval(()=>{if(viewActive())draw()},200);status();frame();
+</script></html>

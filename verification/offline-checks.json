@@ -1,0 +1,18 @@
+{
+  "offline_passed": true,
+  "board_tested": false,
+  "flash_written": false,
+  "bit_sha256": "e0926d3b742e40fd648a51ecfa49869b3fcfa558b03e511baae7d0faf6598711",
+  "elf_sha256": "d1fc623f123f25d719daa04f4477d8a3584bddc8c827dc4ca28734c818db6ff0",
+  "checks": [
+    "IR fallback RV32 + event/visual-weighted/HDMI FPS regression passed",
+    "13 activity-history and assistant unit/protocol tests passed",
+    "2 registration-fitting tests passed",
+    "QQ board-watch offline regression passed",
+    "FPGA unchanged inputs and bit match receipt",
+    "firmware inputs and ELF match receipt",
+    "relocated submission firmware rebuilt; BIN identical to source project"
+  ],
+  "limitation": "Board HTTP unavailable; no real registration, real room-history collection or full model QQ roundtrip verified this run",
+  "bin_sha256": "c35b50c1c66dc5d6d51ffcb6e6ab9489d933bf24b5995725f268953f38bb1900"
+}

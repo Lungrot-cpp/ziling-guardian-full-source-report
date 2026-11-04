@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>事件助手 · 离线体验</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><a href="#main">VF Ti60 <span>事件助手</span></a><span class="mode">离线交互演示</span></header>
+<main id="main">
+<section class="intro"><h1>从一声报警，到看懂发生了什么。</h1><p>选择事件，查看时间线，再追问依据和后续。所有画面均为合成示意，回答为预设示例，未调用实时 AI。</p></section>
+<div class="workspace">
+<aside aria-label="选择模拟事件"><h2>模拟事件</h2><div id="events"></div><p class="aside-note">三个独立样例，用于比较交互方式。它们不是真实板卡记录，也不用于评估识别准确率。</p></aside>
+<section class="evidence" aria-labelledby="event-title"><div class="event-heading"><div><span id="event-id"></span><h2 id="event-title"></h2></div><span id="event-state" class="tag"></span></div>
+<figure><img id="frame" src="/diagram/standing.png" alt="模拟姿态示意图"><figcaption><span id="frame-time"></span><span>合成示意图 · 非相机照片</span></figcaption></figure>
+<div class="playback"><button id="play" type="button">播放过程</button><label for="timeline">采样点</label><input id="timeline" type="range" min="0" max="3" value="0" step="1"><output id="sample"></output></div>
+<ol id="facts"></ol><div class="boundary"><h3>能确定什么，不能确定什么</h3><p id="boundary"></p></div>
+</section>
+<section class="conversation" aria-label="事件追问"><h2>问问事件助手</h2><p class="caption">预设回答预览 · 接入 DSH 后由模型读取证据回答</p><div id="messages" role="log" aria-live="polite"></div>
+<div id="suggestions"><button type="button">刚才发生了什么？</button><button type="button">依据是什么？</button><button type="button">现在起来了吗？</button><button type="button">会不会只是捡东西？</button><button type="button">和其他事件有什么区别？</button></div>
+<form id="ask"><label class="sr-only" for="question">向事件助手提问</label><input id="question" placeholder="问问依据、后续或其他可能…" maxlength="500" required autocomplete="off"><button id="send" type="submit">发送</button></form><p id="error" role="alert"></p>
+</section></div>
+<footer><span>这版演示的是对话与证据组织方式。</span><span>实时视觉分析、真实事件采集与 QQ 发送尚未接通。</span></footer>
+</main></body></html>

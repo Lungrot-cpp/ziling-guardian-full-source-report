@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>以太网事件记录 · Ti60</title>
+<style>
+:root{color-scheme:light;--serif:Georgia, "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;--sans:"Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;font-family:var(--serif);color:#1b1610;background:#faf7f2;line-height:1.6;font-variant-numeric:tabular-nums}
+*{box-sizing:border-box}body{margin:0}main{max-width:1160px;margin:auto;padding:40px 28px}h1{font-size:30px;line-height:1.25;margin:0 0 14px}h2{font-size:20px;margin:0 0 12px}p{margin:10px 0;color:#5c554a}a{color:#82432b;text-underline-offset:4px}a:hover{color:#1b1610}a:focus-visible{outline:3px solid #82432b;outline-offset:4px}::selection{background:#ead2c0;color:#1b1610}header{padding-bottom:24px;border-bottom:1px solid #d8d1c7}nav{display:flex;flex-wrap:wrap;gap:12px 28px;margin-top:18px}.status{color:#1b1610;font-weight:600}.error{color:#9b3221}section{margin-top:28px}.summary{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}.event{display:grid;grid-template-columns:224px 1fr;gap:24px;padding:26px 0;border-bottom:1px solid #d8d1c7}.event img{width:224px;height:126px;image-rendering:pixelated;object-fit:contain;background:#eae5db}.event h3{margin:0 0 8px;font-size:19px}.event p{margin:4px 0;font-size:14px}.event .type{color:#82432b}.empty{padding:38px 0;max-width:68ch}small{font-size:13px;color:#5c554a}footer{margin:32px 0;max-width:72ch;color:#5c554a;font-size:13px}
+@media(max-width:600px){main{padding:28px 18px}h1{font-size:25px}.event{grid-template-columns:1fr;gap:14px}.event img{width:288px;max-width:100%;height:auto;aspect-ratio:16/9}.summary{display:block}}
+nav,time,#total,#contact{font-family:var(--sans)}
+</style>
+<main>
+<header>
+<h1>以太网事件记录</h1>
+
+<p id="connection" class="status" role="status">正在读取接收状态…</p>
+<small id="contact">等待接收服务响应</small>
+<nav aria-label="记录操作"><a href="/events.csv" download="events.csv">下载完整 CSV</a><a href="http://192.168.0.2/api/report" target="_blank" rel="noopener">查看板端补传状态</a><a href="http://192.168.0.2/" target="_blank" rel="noopener">打开板端实时监控</a></nav>
+</header>
+<section aria-labelledby="records-title">
+<div class="summary"><h2 id="records-title">已保存事件</h2><span id="total">等待记录</span></div>
+<p id="export-error" class="error" role="alert" hidden></p>
+<div id="events"><p class="empty">正在加载事件记录…</p></div>
+</section>
+
+</main>
+<script>
+const byId=id=>document.getElementById(id),types=['正常','疑似异常','规则报警'];let previous='';
+function paragraph(text){const p=document.createElement('p');p.textContent=text;return p;}
+async function refresh(){
+ try{
+  const response=await fetch('/api/events',{cache:'no-store'});if(!response.ok)throw new Error('接收服务返回错误');const data=await response.json();
+  byId('connection').className='status';byId('connection').textContent=data.connected?'板卡已连接，正在接收真实事件':'等待板卡连接 · 已保存的历史记录仍可查看';
+  byId('contact').textContent=data.last_contact?'最近一次事件或心跳：'+new Date(data.last_contact).toLocaleString():'尚未收到事件或心跳';
+  byId('total').textContent=`共 ${data.count} 条 · 重传去重 ${data.duplicates} 次`;
+  byId('export-error').hidden=!data.export_error;byId('export-error').textContent=data.export_error?'CSV/图片导出失败，原始事件已保存在 SQLite。请关闭占用文件的程序后重新启动接收服务。':'';
+  const signature=JSON.stringify(data.events);if(signature===previous)return;previous=signature;const list=byId('events');list.replaceChildren();
+  if(!data.events.length){const p=paragraph('还没有收到事件。确认已加载新版程序、网线连接正常，并在镜头前触发目标状态变化；收到后会自动显示。');p.className='empty';list.append(p);return;}
+  for(const e of data.events){
+   const row=document.createElement('article');row.className='event';const link=document.createElement('a');link.href=`/image/${e.session}/${e.id}.bmp`;link.target='_blank';link.rel='noopener';
+   const img=document.createElement('img');img.src=link.href;img.width=224;img.height=126;img.alt=`事件 ${e.id}，目标 ${e.track}，检测帧 ${e.frame} 的${e.color ? "彩色" : "灰度"}缩略图`;link.append(img);
+   const info=document.createElement('div'),title=document.createElement('h3');title.className='type';title.textContent=`${types[e.state]} · 目标 ${e.track} · 事件 ${e.id}`;
+   info.append(title,paragraph('电脑接收：'+new Date(e.received_utc).toLocaleString()+'　板端：'+e.uptime_ms+' ms　帧号：'+e.frame),paragraph(`位置 (${e.x0}, ${e.y0}) → (${e.x1}, ${e.y1})`),paragraph(`检测置信度 ${(e.detector/10).toFixed(1)}%　规则分数 ${(e.rule/1000).toFixed(3)}　${e.weighted?'融合':'视觉'}分数 ${(e.score/1000).toFixed(3)}`));
+   row.append(link,info);list.append(row);
+  }
+ }catch(error){byId('connection').className='status error';byId('connection').textContent='接收服务不可用，请检查接收窗口并重新启动。';}
+}
+refresh();setInterval(refresh,1500);
+</script>
+</html>

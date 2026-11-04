@@ -1,0 +1,56 @@
+[
+  {
+    "section": "摘要",
+    "characters": 660,
+    "limit": 800,
+    "passed": true
+  },
+  {
+    "section": "功能与特性",
+    "characters": 350,
+    "limit": 400,
+    "passed": true
+  },
+  {
+    "section": "应用领域",
+    "characters": 109,
+    "limit": 400,
+    "passed": true
+  },
+  {
+    "section": "主要技术特点",
+    "characters": 236,
+    "limit": 400,
+    "passed": true
+  },
+  {
+    "section": "主要性能指标",
+    "characters": 186,
+    "limit": 200,
+    "passed": true
+  },
+  {
+    "section": "主要创新点",
+    "characters": 160,
+    "limit": 200,
+    "passed": true
+  },
+  {
+    "section": "设计流程",
+    "characters": 177,
+    "limit": 200,
+    "passed": true
+  },
+  {
+    "section": "可扩展之处",
+    "characters": 260,
+    "limit": 300,
+    "passed": true
+  },
+  {
+    "section": "心得体会",
+    "characters": 350,
+    "limit": 1000,
+    "passed": true
+  }
+]

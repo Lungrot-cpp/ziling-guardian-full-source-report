@@ -1,0 +1,15 @@
+{
+  "version": "board",
+  "image_bytes": 5546826,
+  "image_raw_sha256": "0fb02cea8809ced53a0b37f26ffedc1316787f1953e2c14828398be45b57782a",
+  "image_hex_sha256": "233a6b6c0bcd6174bf9536e1b385c01917daeb7175a7c56a36afb10608daf017",
+  "fpga_bytes": 1068295,
+  "fpga_address": 0,
+  "header_address": 3670000,
+  "application_address": 3670016,
+  "application_bytes": 1876810,
+  "bit_sha256": "e0926d3b742e40fd648a51ecfa49869b3fcfa558b03e511baae7d0faf6598711",
+  "elf_sha256": "d1fc623f123f25d719daa04f4477d8a3584bddc8c827dc4ca28734c818db6ff0",
+  "bin_sha256": "c35b50c1c66dc5d6d51ffcb6e6ab9489d933bf24b5995725f268953f38bb1900",
+  "boot_rom_sha256": "5502858fa7662d0600bae0ee97f0262995cdb65d484aacbc3e6ff766c7fab3fb"
+}
